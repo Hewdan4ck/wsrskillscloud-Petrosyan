@@ -47,6 +47,8 @@
         port: '8080'
         proto: tcp
       ignore_errors: true
+    - name: Starting the ufw
+      state: enabled
     - name: Creating users 
       user:
         name: '{{ users }}'
