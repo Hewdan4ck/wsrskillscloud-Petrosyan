@@ -1,1 +1,79 @@
 ---
+- hosts: localhost
+  tasks:
+    - name: public keys
+      shell: sshpass -p toortoor ssh-copy-id root@10.11.14.71
+      shell: sshpass -p toortoor ssh-copy-id root@10.11.14.72
+      shell: sshpass -p toortoor ssh-copy-id root@10.11.14.73
+      ignore_errors: true
+- hosts: all
+  tasks:
+    - name: Apt update
+      apt:
+        update_cache: yes
+      ignore_errors: true
+    - name: Packages installation
+      apt:
+        pkg:
+          - curl
+          - docker
+          - docker.io
+      ignore_errors: true
+    - name: SSH ports
+      copy:
+        src: ./sshd_config
+        dest: /etc/ssh/sshd_config
+      ignore_errors: true
+    - name: Ufw port 22
+      ufw:
+        rule: allow
+        port: '22'
+        proto: tcp
+    - name: Ufw port 1834 
+      ufw:
+        rule: allow
+        port: '1834'
+        proto: tcp
+      ignore_errors: true
+    - name: Ufw port 80 
+      ufw:
+        rule: allow
+        port: '80'
+        proto: tcp
+      ignore_errors: true
+    - name: Ufw port 8080
+      ufw:
+        rule: allow
+        port: '8080'
+        proto: tcp
+      ignore_errors: true
+    - name: Creating users 
+      user:
+        name: '{{ users }}'
+        password: '{{ passwords | password_hask("sha512") }}'
+        state: present
+        shell: /bin/bash
+        createhome: yes
+      ignore_errors: true
+    - name: Creating the skillcloud-nginx directory
+      file:
+        path: /skillcloud-nginx
+        state: directory
+        mode: '0777'
+      ignore_errors: true
+    - name: Copying the files into skillcloud-nginx
+      copy:
+        src: ./wsr-skillcloud
+        dest: /skillcloud-nginx
+        mode: '0777'
+      ignore_errors: true
+    - name: Docker script
+      shell: /wsr-skillcloud/docker-compose.sh
+    - name: SSH restart
+      service:
+        name: sshd
+        state: restarted
+      ignore_errors: true
+    - name:
+      shell: systemctl reboot
+      ignore_errors: true
