@@ -1,8 +1,15 @@
 ---
 - hosts: localhost
   tasks:
+    - name: Rm old keys
+      shell: rm ~/.ssh/id_rsa.pub
+      ignore_errors: true
+    - name: Rm old keys
+      shell: rm ~/.ssh/id_rsa
+      ignore_errors: true
     - name: SSH keygen
-      shell: ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa
+      shell: ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa
+      ignore_errors: true
 #      user:
 #        name: "root"
 #       generate_ssh_key: yes
@@ -20,6 +27,8 @@
       shell: sshpass -p toortoor ssh-copy-id root@10.11.14.73
       ignore_errors: true
 - hosts: all
+  vars_files:
+    - ./Users/privvars.yml
   tasks:
     - name: Apt update
       apt:
@@ -63,28 +72,74 @@
     - name: Starting the ufw
       ufw:
         state: enabled
-    - name: Creating users 
+    - name: Creating the user
       user:
-        name: '{{ users }}'
-        password: '{{ passwords | password_hask("sha512") }}'
+        name: '{{ skillcloud["users"][0] }}'
+        password: '{{ skillcloud["passwords"][0] | password_hash("sha512") }}'
         state: present
         shell: /bin/bash
         createhome: yes
       ignore_errors: true
-    - name: Creating the skillcloud-nginx directory
-      file:
-        path: /skillcloud-nginx
-        state: directory
-        mode: '0777'
+- hosts: localhost
+  vars_files:
+    - ./Users/privvars.yml
+  tasks:
+    - name: SSH pub key
+      shell: sshpass -p {{ skillcloud["passwords"][0] }} ssh-copy-id -f -i ./Users/id_rsa.pub {{ skillcloud["users"][0] }}@10.11.14.71
+- hosts: all
+  vars_files:
+    - ./Users/privvars.yml
+  tasks:
+    - name: Creating the user
+      user:
+        name: '{{ skillcloud["users"][1] }}'
+        password: '{{ skillcloud["passwords"][1] | password_hash("sha512") }}'
+        state: present
+        shell: /bin/bash
+        createhome: yes
       ignore_errors: true
+- hosts: localhost
+  vars_files:
+    - ./Users/privvars.yml
+  tasks:
+    - name: SSH pub key
+      shell: sshpass -p {{ skillcloud["passwords"][1] }} ssh-copy-id -f -i ./Users/id_rsa.pub {{ skillcloud["users"][1] }}@10.11.14.72
+- hosts: all
+  vars_files:
+    - ./Users/privvars.yml
+  tasks:
+    - name: Creating the user
+      user:
+        name: '{{ skillcloud["users"][2] }}'
+        password: '{{ skillcloud["passwords"][2] | password_hash("sha512") }}'
+        state: present
+        shell: /bin/bash
+        createhome: yes
+      ignore_errors: true
+- hosts: localhost
+  vars_files:
+    - ./Users/privvars.yml
+  tasks:
+    - name: SSH pub key
+      shell: sshpass -p {{ skillcloud["passwords"][2] }} ssh-copy-id -f -i ./Users/id_rsa.pub {{ skillcloud["users"][2] }}@10.11.14.73
+- hosts: all
+  vars_files:
+    - ./Users/privvars.yml
+  tasks:
+#    - name: Creating the skillcloud-nginx directory
+#      file:
+#       path: /skillcloud-nginx
+#       state: directory
+#       mode: '0777'
+#     ignore_errors: true
     - name: Copying the files into skillcloud-nginx
       copy:
-        src: ./wsr-skillcloud
-        dest: /skillcloud-nginx
+        src: ./skillcloud-nginx
+        dest: /
         mode: '0777'
       ignore_errors: true
     - name: Docker script
-      shell: /wsr-skillcloud/docker-compose.sh
+      shell: /skillcloud-nginx/docker-compose.sh
     - name: SSH restart
       service:
         name: sshd
