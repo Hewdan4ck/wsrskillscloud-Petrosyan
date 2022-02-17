@@ -1,9 +1,21 @@
 ---
 - hosts: localhost
   tasks:
-    - name: public keys
+    - name: SSH keygen
+      user:
+        name: "root"
+        generate_ssh_key: yes
+        ssh_key_type: rsa
+        ssh_key_bits: 4096
+        ssh_key_file: .ssh/id
+        force: no
+    - name: Public key for proj1
       shell: sshpass -p toortoor ssh-copy-id root@10.11.14.71
+      ignore_errors: true
+    - name: Public key for proj2
       shell: sshpass -p toortoor ssh-copy-id root@10.11.14.72
+      ignore_errors: true
+    - name: Public key for proj3
       shell: sshpass -p toortoor ssh-copy-id root@10.11.14.73
       ignore_errors: true
 - hosts: all
